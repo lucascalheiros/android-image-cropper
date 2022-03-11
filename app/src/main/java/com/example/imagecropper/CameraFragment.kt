@@ -109,7 +109,7 @@ class CameraFragment : Fragment() {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val msg = "Photo capture succeeded: ${output.savedUri}"
                     val arguments = Bundle()
-                    arguments.putSerializable(CropperFragment.ARG_PHOTO_URI, output.savedUri?.path)
+                    arguments.putSerializable(CropperFragment.ARG_PHOTO_URI, output.savedUri.toString())
                     parentFragmentManager.commit {
                         replace<CropperFragment>(R.id.flBaseCropper, null, arguments)
                         addToBackStack(null)

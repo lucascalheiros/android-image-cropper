@@ -11,7 +11,6 @@ class ImageCropperActivity : AppCompatActivity() {
         setContentView(R.layout.activity_image_cropper)
         supportFragmentManager.commit {
             replace<CameraFragment>(R.id.flBaseCropper)
-            addToBackStack(null)
         }
     }
 }
