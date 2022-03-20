@@ -28,10 +28,12 @@ class CropperFragment : Fragment() {
 
         binding = FragmentCropperBinding.inflate(layoutInflater, container, false)
 
-        Glide
-            .with(requireContext())
-            .load(photoUri)
-            .into(binding.ivPhoto)
+        binding.cvCropper.photoUri = photoUri
+
+//        Glide
+//            .with(requireContext())
+//            .load(photoUri)
+//            .into(binding.ivPhoto)
 
         return binding.root
     }

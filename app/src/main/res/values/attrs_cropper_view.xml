@@ -1,0 +1,5 @@
+<resources>
+    <declare-styleable name="CropperView">
+        <attr name="photoUri" format="string" />
+    </declare-styleable>
+</resources>

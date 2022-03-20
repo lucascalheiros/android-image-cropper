@@ -6,6 +6,8 @@
         <entry key="app/src/main/res/layout/activity_image_cropper.xml" value="0.18840579710144928" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.17916666666666667" />
         <entry key="app/src/main/res/layout/fragment_camera.xml" value="0.18840579710144928" />
+        <entry key="app/src/main/res/layout/fragment_cropper.xml" value="0.21145833333333333" />
+        <entry key="app/src/main/res/layout/sample_cropper_view.xml" value="0.35260416666666666" />
       </map>
     </option>
   </component>
