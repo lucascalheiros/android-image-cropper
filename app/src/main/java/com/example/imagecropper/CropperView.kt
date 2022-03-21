@@ -32,12 +32,10 @@ class CropperView : View {
     // The ‘active pointer’ is the one currently moving our object.
     private var mActivePointerId = INVALID_POINTER_ID
 
-    private var _viewHeight = 0
-    private var _viewWidth = 0
     private var _viewDesiredHeight = 0
     private var _photoProportion = 0f
 
-    private var mScaleFactor = 1f
+    private var mRectSize = 200
 
     // Set up the paint with which to draw.
     private val paint = Paint().apply {
@@ -55,19 +53,37 @@ class CropperView : View {
     private val rect = Rect(
         0,
         0,
-        200,
-        200
+        mRectSize,
+        mRectSize
     )
 
     private val scaleListener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
 
         override fun onScale(detector: ScaleGestureDetector): Boolean {
-            mScaleFactor *= detector.scaleFactor
+            mActivePointerId = INVALID_POINTER_ID
 
-            // Don't let the object get too small or too large.
-            mScaleFactor = max(0.1f, min(mScaleFactor, 5.0f))
+            mRectSize = max(min(mRectSize * detector.scaleFactor, min(width.toFloat(), height.toFloat())), 200f).toInt()
 
-            Log.d(TAG, "Scale change: $mScaleFactor")
+            val xTemp = rect.exactCenterX() - mRectSize / 2
+            val yTemp = rect.exactCenterY() - mRectSize / 2
+            val x = when {
+                xTemp < 0 -> 0f
+                xTemp + mRectSize > width -> width.toFloat() - mRectSize
+                else -> xTemp
+            }
+            val y = when {
+                yTemp < 0 -> 0f
+                yTemp + mRectSize > height -> height.toFloat() - mRectSize
+                else -> yTemp
+            }
+
+            mPosX = x
+            mPosY = y
+
+            rect.left = y.toInt()
+            rect.top = x.toInt()
+            rect.right = y.toInt() + mRectSize
+            rect.bottom = x.toInt() + mRectSize
 
             invalidate()
             return true
@@ -81,25 +97,15 @@ class CropperView : View {
     private var mPosY = 0f
     private var mLastTouchY = 0f
 
-    constructor(context: Context) : super(context) {
-        init(null, 0)
-    }
+    constructor(context: Context) : super(context)
 
-    constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
-        init(attrs, 0)
-    }
+    constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
 
     constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(
         context,
         attrs,
         defStyle
-    ) {
-        init(attrs, defStyle)
-    }
-
-    private fun init(attrs: AttributeSet?, defStyle: Int) {
-
-    }
+    )
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -108,8 +114,6 @@ class CropperView : View {
             val source = createSource(context.contentResolver, uri)
             val bitmap = ImageDecoder.decodeBitmap(source)
             _photoProportion = bitmap.height / bitmap.width.toFloat()
-            _viewDesiredHeight = (bitmap.height * (_viewWidth / bitmap.width.toFloat())).toInt()
-            _photoBitmap = bitmap.scale(_viewWidth, _viewDesiredHeight, true)
         } catch (t: Throwable) {
 
         }
@@ -183,57 +187,62 @@ class CropperView : View {
         // Let the ScaleGestureDetector inspect all events.
         mScaleDetector.onTouchEvent(ev)
 
-        val action = MotionEventCompat.getActionMasked(ev)
+        val action = ev.actionMasked
 
         Log.d(TAG, action.toString())
 
         when (action) {
             MotionEvent.ACTION_DOWN -> {
-                MotionEventCompat.getActionIndex(ev).also { pointerIndex ->
+                ev.actionIndex.also { pointerIndex ->
                     // Remember where we started (for dragging)
-                    mLastTouchX = MotionEventCompat.getX(ev, pointerIndex)
-                    mLastTouchY = MotionEventCompat.getY(ev, pointerIndex)
+                    mLastTouchX = ev.getX(pointerIndex)
+                    mLastTouchY = ev.getY(pointerIndex)
                 }
 
                 // Save the ID of this pointer (for dragging)
-                mActivePointerId = MotionEventCompat.getPointerId(ev, 0)
+                mActivePointerId = ev.getPointerId(0)
             }
 
             MotionEvent.ACTION_MOVE -> {
+                if (mActivePointerId == INVALID_POINTER_ID) {
+                    return true
+                }
                 // Find the index of the active pointer and fetch its position
-                val (x: Float, y: Float) =
-                    MotionEventCompat.findPointerIndex(ev, mActivePointerId).let { pointerIndex ->
-                        // Calculate the distance moved
-                        MotionEventCompat.getX(ev, pointerIndex) to
-                                MotionEventCompat.getY(ev, pointerIndex)
+                val (x: Float, y: Float) = mActivePointerId.let { pointerId ->
+                    if (pointerId == INVALID_POINTER_ID) {
+                        return true
+                    } else {
+                        ev.findPointerIndex(pointerId).let { pointerIndex ->
+                            // Calculate the distance moved
+                            ev.getX(pointerIndex) to ev.getY(pointerIndex)
+                        }
                     }
+                }
 
                 mPosX += x - mLastTouchX
                 mPosY += y - mLastTouchY
+
+                mPosX = when {
+                    mPosX < 0 -> 0f
+                    mPosX + mRectSize > width -> width.toFloat() - mRectSize
+                    else -> mPosX
+                }
+                mPosY = when {
+                    mPosY < 0 -> 0f
+                    mPosY + mRectSize > height -> height.toFloat() - mRectSize
+                    else -> mPosY
+                }
 
                 invalidate()
 
                 // Remember this touch position for the next move event
                 mLastTouchX = x
                 mLastTouchY = y
+
+
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 mActivePointerId = INVALID_POINTER_ID
-            }
-            MotionEvent.ACTION_POINTER_UP -> {
-
-                MotionEventCompat.getActionIndex(ev).also { pointerIndex ->
-                    MotionEventCompat.getPointerId(ev, pointerIndex)
-                        .takeIf { it == mActivePointerId }
-                        ?.run {
-                            // This was our active pointer going up. Choose a new
-                            // active pointer and adjust accordingly.
-                            val newPointerIndex = if (pointerIndex == 0) 1 else 0
-                            mLastTouchX = MotionEventCompat.getX(ev, newPointerIndex)
-                            mLastTouchY = MotionEventCompat.getY(ev, newPointerIndex)
-                            mActivePointerId = MotionEventCompat.getPointerId(ev, newPointerIndex)
-                        }
-                }
             }
         }
         invalidate()
