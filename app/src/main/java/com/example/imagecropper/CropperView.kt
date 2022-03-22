@@ -13,6 +13,8 @@ import android.view.View
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.scale
 import androidx.core.view.MotionEventCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.math.max
 import kotlin.math.min
 
@@ -247,6 +249,18 @@ class CropperView : View {
         }
         invalidate()
         return true
+    }
+
+    suspend fun cropToBitmap(): Bitmap? = withContext(Dispatchers.Default) {
+        _photoBitmap?.let { bitmap ->
+            Bitmap.createBitmap(
+                bitmap,
+                mPosX.toInt(),
+                mPosY.toInt(),
+                mRectSize,
+                mRectSize
+            )
+        }
     }
 
     companion object {
