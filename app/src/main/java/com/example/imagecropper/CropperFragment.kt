@@ -2,6 +2,7 @@ package com.example.imagecropper
 
 import android.content.ContentValues
 import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -12,8 +13,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.imagecropper.databinding.FragmentCropperBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class CropperFragment : Fragment() {
@@ -36,7 +39,19 @@ class CropperFragment : Fragment() {
 
         binding = FragmentCropperBinding.inflate(layoutInflater, container, false)
 
-        binding.cvCropper.photoUri = photoUri
+        MainScope().launch {
+            val uri = Uri.parse(photoUri)
+            val source = withContext(Dispatchers.IO) {
+                ImageDecoder.createSource(
+                    requireContext().contentResolver,
+                    uri
+                )
+            }
+            val bitmap = withContext(Dispatchers.Default) {
+                ImageDecoder.decodeBitmap(source)
+            }
+            binding.cvCropper.photoBitmap = bitmap
+        }
 
         binding.btSaveCrop.setOnClickListener {
             MainScope().launch {
@@ -56,16 +71,18 @@ class CropperFragment : Fragment() {
                         values
                     )
                     if (uri != null) {
-                        requireContext().contentResolver.openOutputStream(uri).use { output ->
-                            val bm: Bitmap = bitmap
-                            bm.compress(Bitmap.CompressFormat.JPEG, 100, output)
+                        withContext(Dispatchers.IO) {
+                            requireContext().contentResolver.openOutputStream(uri).use { output ->
+                                val bm: Bitmap = bitmap
+                                bm.compress(Bitmap.CompressFormat.JPEG, 100, output)
+                            }
                         }
                     }
                 } catch (e: Exception) {
                     Log.d(
                         "onBtnSavePng",
                         e.toString()
-                    ) // java.io.IOException: Operation not permitted
+                    )
                 }
             }
         }

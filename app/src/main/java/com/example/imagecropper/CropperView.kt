@@ -21,15 +21,13 @@ import kotlin.math.min
 
 class CropperView : View {
 
-    private var _photoUri: String? = null
-    var photoUri: String?
-        get() = _photoUri
+    private var _photoBitmap: Bitmap? = null
+    var photoBitmap: Bitmap?
+        get() = _photoBitmap
         set(value) {
-            _photoUri = value
+            _photoBitmap = value
             invalidatePhotoAndMeasurements()
         }
-
-    private var _photoBitmap: Bitmap? = null
 
     // The ‘active pointer’ is the one currently moving our object.
     private var mActivePointerId = INVALID_POINTER_ID
@@ -109,30 +107,15 @@ class CropperView : View {
         defStyle
     )
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        try {
-            val uri = Uri.parse(photoUri)
-            val source = createSource(context.contentResolver, uri)
-            val bitmap = ImageDecoder.decodeBitmap(source)
-            _photoProportion = bitmap.height / bitmap.width.toFloat()
-        } catch (t: Throwable) {
-
-        }
-    }
-
-    override fun onSizeChanged(xNew: Int, yNew: Int, xOld: Int, yOld: Int) {
-        super.onSizeChanged(xNew, yNew, xOld, yOld)
-        invalidatePhotoAndMeasurements()
-    }
-
     private fun invalidatePhotoAndMeasurements() {
         try {
-            val uri = Uri.parse(photoUri)
-            val source = createSource(context.contentResolver, uri)
-            val bitmap = ImageDecoder.decodeBitmap(source)
-            _viewDesiredHeight = (bitmap.height * (width / bitmap.width.toFloat())).toInt()
+            val bitmap = _photoBitmap ?: return
+            _photoProportion = bitmap.height / bitmap.width.toFloat()
+            if (width == 0)
+                return
+            _viewDesiredHeight = (width * _photoProportion).toInt()
             _photoBitmap = bitmap.scale(width, _viewDesiredHeight, true)
+            requestLayout()
             invalidate()
         } catch (t: Throwable) {
 
@@ -156,7 +139,6 @@ class CropperView : View {
         }
         return result
     }
-
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         Log.v("Chart onMeasure w", MeasureSpec.toString(widthMeasureSpec))
