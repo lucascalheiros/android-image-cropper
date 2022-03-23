@@ -60,8 +60,6 @@ class CropperView : View {
     private val scaleListener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
 
         override fun onScale(detector: ScaleGestureDetector): Boolean {
-            mActivePointerId = INVALID_POINTER_ID
-
             mRectSize = max(min(mRectSize * detector.scaleFactor, min(width.toFloat(), height.toFloat())), 200f).toInt()
 
             val xTemp = rect.exactCenterX() - mRectSize / 2
@@ -96,6 +94,7 @@ class CropperView : View {
     private var mLastTouchX = 0f
     private var mPosY = 0f
     private var mLastTouchY = 0f
+    private var mForceCenterCrop = true
 
     constructor(context: Context) : super(context)
 
@@ -115,6 +114,7 @@ class CropperView : View {
                 return
             _viewDesiredHeight = (width * _photoProportion).toInt()
             _photoBitmap = bitmap.scale(width, _viewDesiredHeight, true)
+            mForceCenterCrop = true
             requestLayout()
             invalidate()
         } catch (t: Throwable) {
@@ -155,16 +155,19 @@ class CropperView : View {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        rect.offsetTo(
-            mPosX.toInt(),
-            mPosY.toInt()
-        )
-
         _photoBitmap?.let {
+            if (mForceCenterCrop) {
+                mForceCenterCrop = false
+                mPosX = (width - mRectSize) / 2f
+                mPosY = (height - mRectSize) / 2f
+            }
+            rect.offsetTo(
+                mPosX.toInt(),
+                mPosY.toInt()
+            )
             canvas.drawBitmap(it, 0f, 0f, null)
+            canvas.drawRect(rect, paint)
         }
-
-        canvas.drawRect(rect, paint)
     }
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
@@ -188,7 +191,7 @@ class CropperView : View {
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (mActivePointerId == INVALID_POINTER_ID) {
+                if (ev.pointerCount > 1) {
                     return true
                 }
                 // Find the index of the active pointer and fetch its position
