@@ -7,7 +7,7 @@
     android:background="@color/gray"
     tools:context=".CropperFragment">
 
-    <com.example.imagecropper.CropperView
+    <com.github.lucascalheiros.imagecropper.CropperView
         android:id="@+id/cvCropper"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -1,11 +1,11 @@
-package com.example.imagecropper
+package com.github.lucascalheiros.imagecropper
 
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContract
-import com.example.imagecropper.ImageCropperActivity.Companion.EXTRA_RESULT_CROPPED_IMAGE
+import com.github.lucascalheiros.imagecropper.ImageCropperActivity.Companion.EXTRA_RESULT_CROPPED_IMAGE
 
 class ImageCropperContract : ActivityResultContract<Int, Uri?>() {
     override fun createIntent(context: Context, code: Int) = Intent(context, ImageCropperActivity::class.java)

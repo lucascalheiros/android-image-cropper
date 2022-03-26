@@ -3,6 +3,7 @@ package com.example.imagecropper
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.example.imagecropper.databinding.ActivitySampleBinding
+import com.github.lucascalheiros.imagecropper.ImageCropperContract
 
 class SampleActivity : AppCompatActivity() {
 

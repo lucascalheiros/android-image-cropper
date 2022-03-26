@@ -1,9 +1,10 @@
-package com.example.imagecropper
+package com.github.lucascalheiros.imagecropper
 
 import android.content.Context
-import android.graphics.*
-import android.graphics.ImageDecoder.createSource
-import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
@@ -12,7 +13,6 @@ import android.view.ScaleGestureDetector
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.scale
-import androidx.core.view.MotionEventCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.max

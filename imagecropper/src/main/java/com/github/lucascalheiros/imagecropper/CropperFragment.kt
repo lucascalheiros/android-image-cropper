@@ -1,4 +1,4 @@
-package com.example.imagecropper
+package com.github.lucascalheiros.imagecropper
 
 import android.app.Activity.RESULT_OK
 import android.content.ContentValues
@@ -14,8 +14,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import com.example.imagecropper.ImageCropperActivity.Companion.EXTRA_RESULT_CROPPED_IMAGE
-import com.example.imagecropper.databinding.FragmentCropperBinding
+import com.github.lucascalheiros.imagecropper.ImageCropperActivity.Companion.EXTRA_RESULT_CROPPED_IMAGE
+import com.github.lucascalheiros.imagecropper.databinding.FragmentCropperBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch

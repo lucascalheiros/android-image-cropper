@@ -1,4 +1,4 @@
-package com.example.imagecropper
+package com.github.lucascalheiros.imagecropper
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
