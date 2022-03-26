@@ -1,6 +1,8 @@
 package com.example.imagecropper
 
+import android.app.Activity.RESULT_OK
 import android.content.ContentValues
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -12,6 +14,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.example.imagecropper.ImageCropperActivity.Companion.EXTRA_RESULT_CROPPED_IMAGE
 import com.example.imagecropper.databinding.FragmentCropperBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -63,7 +66,7 @@ class CropperFragment : Fragment() {
                         put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
                         put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
                         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX-Image")
+                            put(MediaStore.Images.Media.RELATIVE_PATH, PHOTO_DIRECTORY)
                         }
                     }
                     val uri: Uri? = requireContext().contentResolver.insert(
@@ -77,6 +80,10 @@ class CropperFragment : Fragment() {
                                 bm.compress(Bitmap.CompressFormat.JPEG, 100, output)
                             }
                         }
+                        val intent = Intent()
+                        intent.putExtra(EXTRA_RESULT_CROPPED_IMAGE, uri)
+                        requireActivity().setResult(RESULT_OK, intent)
+                        requireActivity().finish()
                     }
                 } catch (e: Exception) {
                     Log.d(
@@ -85,6 +92,10 @@ class CropperFragment : Fragment() {
                     )
                 }
             }
+        }
+
+        binding.btCancel.setOnClickListener {
+            requireActivity().supportFragmentManager.popBackStack()
         }
 
         return binding.root

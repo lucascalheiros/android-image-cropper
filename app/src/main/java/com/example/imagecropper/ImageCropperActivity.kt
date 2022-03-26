@@ -13,4 +13,8 @@ class ImageCropperActivity : AppCompatActivity() {
             replace<CameraFragment>(R.id.flBaseCropper)
         }
     }
+
+    companion object {
+        const val EXTRA_RESULT_CROPPED_IMAGE = "EXTRA_RESULT_CROPPED_IMAGE"
+    }
 }

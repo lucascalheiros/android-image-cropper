@@ -18,6 +18,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ImageCropper">
         <activity
+            android:name=".SampleActivity"
+            android:exported="true"
+            android:label="@string/title_activity_sample">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".ImageCropperActivity"
             android:exported="true">
             <intent-filter>
@@ -26,7 +36,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
     </application>
 
 </manifest>
