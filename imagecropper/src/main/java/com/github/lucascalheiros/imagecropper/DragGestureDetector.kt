@@ -17,44 +17,55 @@ class DragGestureDetector(private val listener: OnDragGestureListener) {
     private var mLastTouchX = 0f
     private var mLastTouchY = 0f
 
-    fun onTouchEvent(ev: MotionEvent) {
+    private fun registerActivePointerInitialPosition(ev: MotionEvent) {
+        mActivePointerId = ev.getPointerId(0)
+        val (x: Float, y: Float) = activePointerPosition(ev) ?: return
+        mLastTouchX = x
+        mLastTouchY = y
+    }
 
+    private fun invalidateActivePointer() {
+        mActivePointerId = MotionEvent.INVALID_POINTER_ID
+    }
+
+    private fun activePointerPosition(ev: MotionEvent): Pair<Float, Float>? {
+        if (mActivePointerId == MotionEvent.INVALID_POINTER_ID) {
+            registerActivePointerInitialPosition(ev)
+        }
+        return try {
+            val activePointerId = mActivePointerId
+            if (activePointerId == MotionEvent.INVALID_POINTER_ID) {
+                null
+            } else {
+                ev.findPointerIndex(activePointerId).let { pointerIndex ->
+                    ev.getX(pointerIndex) to ev.getY(pointerIndex)
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun onTouchEvent(ev: MotionEvent) {
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                ev.actionIndex.also { pointerIndex ->
-                    mLastTouchX = ev.getX(pointerIndex)
-                    mLastTouchY = ev.getY(pointerIndex)
-                }
-
-                mActivePointerId = ev.getPointerId(0)
+                registerActivePointerInitialPosition(ev)
             }
-
             MotionEvent.ACTION_MOVE -> {
                 if (ev.pointerCount > 1) {
-                    mActivePointerId = MotionEvent.INVALID_POINTER_ID
-                    return
-                }
-                val (x: Float, y: Float) = try {
-                    mActivePointerId.let { pointerId ->
-                        if (pointerId == MotionEvent.INVALID_POINTER_ID) {
-                            return
-                        } else {
-                            ev.findPointerIndex(pointerId).let { pointerIndex ->
-                                ev.getX(pointerIndex) to ev.getY(pointerIndex)
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
+                    invalidateActivePointer()
                     return
                 }
 
-                listener.onDragged( x - mLastTouchX,  y - mLastTouchY)
+                val (x: Float, y: Float) = activePointerPosition(ev) ?: return
+
+                listener.onDragged(x - mLastTouchX, y - mLastTouchY)
 
                 mLastTouchX = x
                 mLastTouchY = y
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                mActivePointerId = MotionEvent.INVALID_POINTER_ID
+                invalidateActivePointer()
             }
         }
     }
