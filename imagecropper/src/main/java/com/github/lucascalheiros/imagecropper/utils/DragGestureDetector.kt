@@ -1,4 +1,4 @@
-package com.github.lucascalheiros.imagecropper
+package com.github.lucascalheiros.imagecropper.utils
 
 import android.view.MotionEvent
 
@@ -14,21 +14,18 @@ class DragGestureDetector(private val listener: OnDragGestureListener) {
     // The ‘active pointer’ is the one currently moving our object.
     private var mActivePointerId = MotionEvent.INVALID_POINTER_ID
 
-    private var mLastTouchX = 0f
-    private var mLastTouchY = 0f
+    private var mLastTouch = (0f to 0f).toPoint()
 
     private fun registerActivePointerInitialPosition(ev: MotionEvent) {
         mActivePointerId = ev.getPointerId(0)
-        val (x: Float, y: Float) = activePointerPosition(ev) ?: return
-        mLastTouchX = x
-        mLastTouchY = y
+        mLastTouch = activePointerPosition(ev) ?: return
     }
 
     private fun invalidateActivePointer() {
         mActivePointerId = MotionEvent.INVALID_POINTER_ID
     }
 
-    private fun activePointerPosition(ev: MotionEvent): Pair<Float, Float>? {
+    private fun activePointerPosition(ev: MotionEvent): Point? {
         if (mActivePointerId == MotionEvent.INVALID_POINTER_ID) {
             registerActivePointerInitialPosition(ev)
         }
@@ -39,7 +36,7 @@ class DragGestureDetector(private val listener: OnDragGestureListener) {
             } else {
                 ev.findPointerIndex(activePointerId).let { pointerIndex ->
                     ev.getX(pointerIndex) to ev.getY(pointerIndex)
-                }
+                }.toPoint()
             }
         } catch (e: Exception) {
             null
@@ -57,12 +54,13 @@ class DragGestureDetector(private val listener: OnDragGestureListener) {
                     return
                 }
 
-                val (x: Float, y: Float) = activePointerPosition(ev) ?: return
+                val currentTouchPosition = activePointerPosition(ev) ?: return
 
-                listener.onDragged(x - mLastTouchX, y - mLastTouchY)
+                (currentTouchPosition - mLastTouch).let { moveWalk ->
+                    listener.onDragged(moveWalk.x, moveWalk.y)
+                }
 
-                mLastTouchX = x
-                mLastTouchY = y
+                mLastTouch = currentTouchPosition
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 invalidateActivePointer()

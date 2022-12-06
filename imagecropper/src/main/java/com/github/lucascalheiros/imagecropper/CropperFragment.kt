@@ -1,14 +1,10 @@
 package com.github.lucascalheiros.imagecropper
 
 import android.app.Activity.RESULT_OK
-import android.content.ContentValues
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +12,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.github.lucascalheiros.imagecropper.ImageCropperActivity.Companion.EXTRA_RESULT_CROPPED_IMAGE
 import com.github.lucascalheiros.imagecropper.databinding.FragmentCropperBinding
+import com.github.lucascalheiros.imagecropper.utils.FileSaver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -24,16 +21,10 @@ import kotlinx.coroutines.withContext
 
 class CropperFragment : Fragment() {
 
-    private var photoUri: String? = null
+    private val photoUri: String?
+        get() = arguments?.getString(ARG_PHOTO_URI)
 
     private lateinit var binding: FragmentCropperBinding
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            photoUri = it.getString(ARG_PHOTO_URI)
-        }
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,47 +35,32 @@ class CropperFragment : Fragment() {
 
         MainScope().launch {
             val uri = Uri.parse(photoUri)
-            val source = withContext(Dispatchers.IO) {
+            val bitmap = withContext(Dispatchers.IO) {
                 ImageDecoder.createSource(
                     requireContext().contentResolver,
                     uri
-                )
-            }
-            val bitmap = withContext(Dispatchers.Default) {
-                ImageDecoder.decodeBitmap(source)
+                ).let {
+                    ImageDecoder.decodeBitmap(it)
+                }
             }
             binding.cvCropper.photoBitmap = bitmap
         }
 
         binding.btSaveCrop.setOnClickListener {
             MainScope().launch {
-                val bitmap = binding.cvCropper.cropToBitmap() ?: return@launch
-
                 try {
+                    val bitmap = binding.cvCropper.cropToBitmap()
+
                     val fileName: String = System.currentTimeMillis().toString()
-                    val values = ContentValues().apply {
-                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-                        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                            put(MediaStore.Images.Media.RELATIVE_PATH, PHOTO_DIRECTORY)
-                        }
-                    }
-                    val uri: Uri? = requireContext().contentResolver.insert(
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        values
-                    )
-                    if (uri != null) {
-                        withContext(Dispatchers.IO) {
-                            requireContext().contentResolver.openOutputStream(uri).use { output ->
-                                val bm: Bitmap = bitmap
-                                bm.compress(Bitmap.CompressFormat.JPEG, 100, output)
-                            }
-                        }
-                        val intent = Intent()
-                        intent.putExtra(EXTRA_RESULT_CROPPED_IMAGE, uri)
-                        requireActivity().setResult(RESULT_OK, intent)
-                        requireActivity().finish()
-                    }
+
+                    val fileSaver = FileSaver(requireContext())
+
+                    val uri = fileSaver.saveBitmap(fileName, bitmap)
+
+                    val intent = Intent()
+                    intent.putExtra(EXTRA_RESULT_CROPPED_IMAGE, uri)
+                    requireActivity().setResult(RESULT_OK, intent)
+                    requireActivity().finish()
                 } catch (e: Exception) {
                     Log.d(
                         "onBtnSavePng",
@@ -102,7 +78,7 @@ class CropperFragment : Fragment() {
     }
 
     companion object {
-        const val ARG_PHOTO_URI = "ARG_PHOTO_URI"
+        private const val ARG_PHOTO_URI = "ARG_PHOTO_URI"
 
         @JvmStatic
         fun newInstance(photoUri: String) =

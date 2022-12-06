@@ -1,7 +1,6 @@
 package com.github.lucascalheiros.imagecropper
 
 import android.Manifest
-import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -20,8 +19,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
-import androidx.fragment.app.replace
 import com.github.lucascalheiros.imagecropper.databinding.FragmentCameraBinding
+import com.github.lucascalheiros.imagecropper.utils.FileSaver
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -77,13 +76,8 @@ class CameraFragment : Fragment() {
 
         val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
             .format(System.currentTimeMillis())
-        val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, PHOTO_DIRECTORY)
-            }
-        }
+
+        val contentValues = FileSaver.jpegContentValues(name)
 
         val outputOptions = ImageCapture.OutputFileOptions
             .Builder(
@@ -103,10 +97,9 @@ class CameraFragment : Fragment() {
 
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val msg = "Photo capture succeeded: ${output.savedUri}"
-                    val arguments = Bundle()
-                    arguments.putSerializable(CropperFragment.ARG_PHOTO_URI, output.savedUri.toString())
+                    val cropperFragment = CropperFragment.newInstance(output.savedUri.toString())
                     parentFragmentManager.commit {
-                        replace<CropperFragment>(R.id.flBaseCropper, null, arguments)
+                        replace(R.id.flBaseCropper, cropperFragment)
                         addToBackStack(null)
                     }
                     Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()

@@ -1,10 +1,7 @@
 package com.github.lucascalheiros.imagecropper
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Rect
+import android.graphics.*
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
@@ -12,10 +9,12 @@ import android.view.ScaleGestureDetector
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.scale
+import com.github.lucascalheiros.imagecropper.utils.DragGestureDetector
+import com.github.lucascalheiros.imagecropper.utils.Point
+import com.github.lucascalheiros.imagecropper.utils.RotationGestureDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.math.absoluteValue
-import kotlin.math.min
+import kotlin.math.*
 
 
 class CropperView @JvmOverloads constructor(
@@ -67,8 +66,11 @@ class CropperView @JvmOverloads constructor(
     val cropSize: Int
         get() = mCropAreaRectangle.width()
 
+    private val photoMatrix = Matrix()
+
     private val mScaleDetector = ScaleGestureDetector(context, scaleListener())
     private val mDragDetector = DragGestureDetector(dragListener())
+    private val mRotationDetector = RotationGestureDetector(rotationListener())
 
     private fun invalidatePhotoAndMeasurements() {
         try {
@@ -124,7 +126,7 @@ class CropperView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         mPhotoBitmap?.let {
-            canvas.drawBitmap(it, 0f, 0f, null)
+            canvas.drawBitmap(it, photoMatrix, null)
             canvas.drawRect(mCropAreaRectangle, paint)
         }
     }
@@ -132,18 +134,23 @@ class CropperView @JvmOverloads constructor(
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         mScaleDetector.onTouchEvent(ev)
         mDragDetector.onTouchEvent(ev)
+        mRotationDetector.onTouchEvent(ev)
+        invalidate()
         return true
     }
 
-    suspend fun cropToBitmap(): Bitmap? = withContext(Dispatchers.Default) {
-        mPhotoBitmap?.let { bitmap ->
-            Bitmap.createBitmap(
-                bitmap,
-                cropX,
-                cropY,
-                cropSize,
-                cropSize
-            )
+
+    suspend fun cropToBitmap(): Bitmap = withContext(Dispatchers.Default) {
+        Log.d(TAG, "Starting to crop bitmap")
+        Bitmap.createBitmap(cropSize, cropSize, Bitmap.Config.ARGB_8888).also { bitmap ->
+            val targetBmp: Bitmap = mPhotoBitmap!!.copy(Bitmap.Config.ARGB_8888, false)
+
+            val canvas = Canvas(bitmap)
+
+            photoMatrix.preTranslate(-cropX.toFloat(), -cropY.toFloat())
+            canvas.drawBitmap(targetBmp, photoMatrix, null)
+
+            Log.d(TAG, "Crop successful")
         }
     }
 
@@ -173,25 +180,40 @@ class CropperView @JvmOverloads constructor(
 
     private fun scaleListener() = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
-            val size = (cropSize * detector.scaleFactor).coerceIn(
-                min(width.toFloat(), height.toFloat()) * 0.5f,
-                min(width.toFloat(), height.toFloat())
-            ).toInt()
+//            val size = (cropSize * detector.scaleFactor).coerceIn(
+//                min(width.toFloat(), height.toFloat()) * 0.5f,
+//                min(width.toFloat(), height.toFloat())
+//            ).toInt()
+//
+//            resizeCropArea(size)
 
-            resizeCropArea(size)
+            photoMatrix.postScale(
+                detector.scaleFactor,
+                detector.scaleFactor,
+                detector.focusX,
+                detector.focusY
+            )
+            Log.d(TAG, photoMatrix.toString())
 
-            invalidate()
             return true
         }
     }
 
     private fun dragListener() = object : DragGestureDetector.OnDragGestureListener {
         override fun onDragged(walkX: Float, walkY: Float) {
-            val x = (cropX + walkX).coerceIn(0f, width.toFloat() - cropSize)
-            val y = (cropY + walkY).coerceIn(0f, height.toFloat() - cropSize)
-            updateCropAreaPosition(x, y)
+//            val x = (cropX + walkX).coerceIn(0f, width.toFloat() - cropSize)
+//            val y = (cropY + walkY).coerceIn(0f, height.toFloat() - cropSize)
+//            updateCropAreaPosition(x, y)
+            photoMatrix.postTranslate(walkX, walkY)
+            Log.d(TAG, photoMatrix.toString())
+        }
+    }
 
-            invalidate()
+    private fun rotationListener() = object : RotationGestureDetector.OnRotationGestureListener {
+        override fun onRotation(angle: Float, pivotPoint: Point) {
+//            Log.d(TAG, "angle: $angle, pivotPoint: $pivotPoint")
+            photoMatrix.postRotate(angle, pivotPoint.x, pivotPoint.y)
+            Log.d(TAG, photoMatrix.toString())
         }
     }
 
