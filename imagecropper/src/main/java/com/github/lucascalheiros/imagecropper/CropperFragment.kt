@@ -19,8 +19,8 @@ import kotlinx.coroutines.*
 
 class CropperFragment : Fragment() {
 
-    private val photoUri: String?
-        get() = arguments?.getString(ARG_PHOTO_URI)
+    private val photoUri: Uri?
+        get() = arguments?.getParcelable(ARG_PHOTO_URI)
 
     private lateinit var binding: FragmentCropperBinding
 
@@ -32,18 +32,19 @@ class CropperFragment : Fragment() {
         binding = FragmentCropperBinding.inflate(layoutInflater, container, false)
 
         MainScope().launch {
-            val uri = Uri.parse(photoUri)
-            val bitmap = withContext(Dispatchers.IO) {
-                ImageDecoder.createSource(
-                    requireContext().contentResolver,
-                    uri
-                ).let {
-                    ImageDecoder.decodeBitmap(it)
+            try {
+                val bitmap = withContext(Dispatchers.IO) {
+                    ImageDecoder.createSource(
+                        requireContext().contentResolver,
+                        photoUri!!
+                    ).let {
+                        ImageDecoder.decodeBitmap(it)
+                    }
                 }
+                binding.areaCropperView.setBitmap(bitmap)
+            } catch (e: Exception) {
+                requireActivity().supportFragmentManager.popBackStack()
             }
-            binding.areaCropperView.setBitmap(bitmap)
-            binding.areaCropperView.setCropMode(CropMode.MoveImage)
-
         }
 
         binding.btSaveCrop.setOnClickListener {
@@ -81,10 +82,10 @@ class CropperFragment : Fragment() {
         private const val ARG_PHOTO_URI = "ARG_PHOTO_URI"
 
         @JvmStatic
-        fun newInstance(photoUri: String) =
+        fun newInstance(photoUri: Uri) =
             CropperFragment().apply {
                 arguments = Bundle().apply {
-                    putString(ARG_PHOTO_URI, photoUri)
+                    putParcelable(ARG_PHOTO_URI, photoUri)
                 }
             }
     }

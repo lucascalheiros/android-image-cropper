@@ -7,8 +7,10 @@ import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContract
 import com.github.lucascalheiros.imagecropper.ImageCropperActivity.Companion.EXTRA_RESULT_CROPPED_IMAGE
 
-class ImageCropperContract : ActivityResultContract<Int, Uri?>() {
-    override fun createIntent(context: Context, code: Int) = Intent(context, ImageCropperActivity::class.java)
+class ImageCropperContract : ActivityResultContract<Uri, Uri?>() {
+    override fun createIntent(context: Context, uri: Uri): Intent {
+        return ImageCropperActivity.newIntent(context, uri)
+    }
 
     override fun parseResult(resultCode: Int, result: Intent?): Uri? {
         if (resultCode != Activity.RESULT_OK) {

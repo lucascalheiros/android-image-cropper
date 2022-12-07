@@ -1,7 +1,8 @@
-package com.github.lucascalheiros.imagecropper
+package com.example.imagecropper
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
@@ -18,8 +19,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.commit
-import com.github.lucascalheiros.imagecropper.databinding.FragmentCameraBinding
+import com.example.imagecropper.databinding.FragmentCameraBinding
 import com.github.lucascalheiros.imagecropper.utils.FileSaver
 import java.text.SimpleDateFormat
 import java.util.*
@@ -33,6 +33,8 @@ class CameraFragment : Fragment() {
     private lateinit var binding: FragmentCameraBinding
 
     private var imageCapture: ImageCapture? = null
+
+    var onPhotoSaved: ((Uri) -> Unit) = {}
 
     private val getPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -97,11 +99,7 @@ class CameraFragment : Fragment() {
 
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val msg = "Photo capture succeeded: ${output.savedUri}"
-                    val cropperFragment = CropperFragment.newInstance(output.savedUri.toString())
-                    parentFragmentManager.commit {
-                        replace(R.id.flBaseCropper, cropperFragment)
-                        addToBackStack(null)
-                    }
+                    output.savedUri?.let { onPhotoSaved(it) }
                     Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
                     Log.d(TAG, msg)
                 }
