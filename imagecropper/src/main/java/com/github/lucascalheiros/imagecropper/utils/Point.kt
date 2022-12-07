@@ -14,6 +14,10 @@ operator fun Point.div(divisor: Float): Point {
     return Point(x / divisor, y / divisor)
 }
 
+operator fun Point.times(multiplier: Float): Point {
+    return Point(x * multiplier, y * multiplier)
+}
+
 fun Pair<Float, Float>.toPoint(): Point {
     return Point(first, second)
 }
