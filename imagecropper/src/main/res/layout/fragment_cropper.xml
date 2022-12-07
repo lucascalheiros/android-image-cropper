@@ -4,11 +4,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/gray"
+    android:background="@color/black"
     tools:context=".CropperFragment">
 
-    <com.github.lucascalheiros.imagecropper.CropperView
-        android:id="@+id/cvCropper"
+    <com.github.lucascalheiros.imagecropper.views.AreaCropperView
+        android:id="@+id/areaCropperView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toTopOf="@+id/llOptions"

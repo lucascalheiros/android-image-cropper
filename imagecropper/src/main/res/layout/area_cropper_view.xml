@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.github.lucascalheiros.imagecropper.views.ImageCropperView
+        android:id="@+id/cropperView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <com.github.lucascalheiros.imagecropper.views.CropAreaView
+        android:id="@+id/cropAreaView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</FrameLayout>

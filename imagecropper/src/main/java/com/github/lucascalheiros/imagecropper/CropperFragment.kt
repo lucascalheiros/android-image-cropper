@@ -13,10 +13,8 @@ import androidx.fragment.app.Fragment
 import com.github.lucascalheiros.imagecropper.ImageCropperActivity.Companion.EXTRA_RESULT_CROPPED_IMAGE
 import com.github.lucascalheiros.imagecropper.databinding.FragmentCropperBinding
 import com.github.lucascalheiros.imagecropper.utils.FileSaver
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.github.lucascalheiros.imagecropper.data.CropMode
+import kotlinx.coroutines.*
 
 
 class CropperFragment : Fragment() {
@@ -43,13 +41,15 @@ class CropperFragment : Fragment() {
                     ImageDecoder.decodeBitmap(it)
                 }
             }
-            binding.cvCropper.photoBitmap = bitmap
+            binding.areaCropperView.setBitmap(bitmap)
+            binding.areaCropperView.setCropMode(CropMode.MoveImage)
+
         }
 
         binding.btSaveCrop.setOnClickListener {
             MainScope().launch {
                 try {
-                    val bitmap = binding.cvCropper.cropToBitmap()
+                    val bitmap = binding.areaCropperView.cropAreaToBitmap()
 
                     val fileName: String = System.currentTimeMillis().toString()
 
