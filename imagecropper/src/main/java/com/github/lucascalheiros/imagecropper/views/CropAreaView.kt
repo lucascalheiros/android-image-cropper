@@ -13,8 +13,9 @@ import android.view.View
 import com.github.lucascalheiros.imagecropper.R
 import com.github.lucascalheiros.imagecropper.data.CropAreaSnapshot
 import com.github.lucascalheiros.imagecropper.utils.DragGestureDetector
+import com.github.lucascalheiros.imagecropper.utils.Point
+import com.github.lucascalheiros.imagecropper.utils.toPoint
 import kotlin.math.absoluteValue
-import kotlin.math.min
 
 
 class CropAreaView @JvmOverloads constructor(
@@ -70,23 +71,27 @@ class CropAreaView @JvmOverloads constructor(
             invalidate()
         }
 
-    private var mMaxCropWidth = Float.MAX_VALUE
-    var maxCropWidth: Float
-        get() = mMaxCropWidth
-        set(value) {
-            mMaxCropWidth = value
-            initializeCropAreaPosition()
-            invalidate()
+    private val maxWidth: Int?
+        get() {
+            val viewProportion = viewProportion ?: return null
+            return if (viewProportion <= cropProportion) {
+                width
+            } else {
+                (height * cropProportion).toInt()
+            }
         }
 
-    private var mMaxCropHeight = Float.MAX_VALUE
-    var maxCropHeight: Float
-        get() = mMaxCropHeight
-        set(value) {
-            mMaxCropHeight = value
-            initializeCropAreaPosition()
-            invalidate()
+    private val maxHeight: Int?
+        get() {
+            val viewProportion = viewProportion ?: return null
+            return if (viewProportion <= cropProportion) {
+                (width / cropProportion).toInt()
+            } else {
+                height
+            }
         }
+
+    var minScale: Float = 0.5f
 
     private var mHorizontalCropBorder = 0f
     var horizontalCropBorder: Float
@@ -106,6 +111,9 @@ class CropAreaView @JvmOverloads constructor(
             invalidate()
         }
 
+    private var defaultPos: Point? = null
+    private var defaultSize: Point? = null
+
     var allowTouch = true
 
     private fun initializeCropAreaPosition() {
@@ -117,9 +125,12 @@ class CropAreaView @JvmOverloads constructor(
 
     private fun defaultCropSize(): Pair<Int, Int>? {
         val viewProportion = viewProportion ?: return null
+        defaultSize?.let {
+            return it.x.toInt() to it.y.toInt()
+        }
 
-        val widthLimit = min(width - horizontalCropBorder, maxCropWidth)
-        val heightLimit = min(height - verticalCropBorder, maxCropHeight)
+        val widthLimit = width - horizontalCropBorder
+        val heightLimit = height - verticalCropBorder
         val (newWidth, newHeight) = if (viewProportion <= cropProportion) {
             widthLimit to (widthLimit / cropProportion)
         } else {
@@ -135,7 +146,9 @@ class CropAreaView @JvmOverloads constructor(
     }
 
     private fun defaultCropPosition(): Pair<Float, Float> {
-        return (width - cropWidth) / 2f to (height - cropHeight) / 2f
+        return defaultPos?.let {
+            it.x to it.y
+        } ?: ((width - cropWidth) / 2f to (height - cropHeight) / 2f)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -170,20 +183,21 @@ class CropAreaView @JvmOverloads constructor(
         invalidate()
         return true
     }
+
     fun resetDefaults() {
         mVerticalCropBorder = 0f
         mHorizontalCropBorder = 0f
-        mMaxCropHeight = Float.MAX_VALUE
-        mMaxCropWidth = Float.MAX_VALUE
         mCropProportion = 1f
+        defaultPos = null
+        defaultSize = null
         initializeCropAreaPosition()
         invalidate()
     }
 
     fun applyCropSnapshot(snapshot: CropAreaSnapshot) {
-        mMaxCropHeight = snapshot.cropHeight.toFloat()
-        mMaxCropWidth = snapshot.cropWidth.toFloat()
         mCropProportion = snapshot.cropWidth.toFloat() / snapshot.cropHeight.toFloat()
+        defaultPos = (snapshot.cropX.toFloat() to snapshot.cropY.toFloat()).toPoint()
+        defaultSize = (snapshot.cropWidth.toFloat() to snapshot.cropHeight.toFloat()).toPoint()
         initializeCropAreaPosition()
         invalidate()
     }
@@ -199,13 +213,17 @@ class CropAreaView @JvmOverloads constructor(
 
     private fun updateCropAreaPosition(x: Float, y: Float) {
         mCropAreaRectangle.offsetTo(
-            x.toInt(),
-            y.toInt()
+            x.coerceIn(0f, width.toFloat() - cropWidth).toInt(),
+            y.coerceIn(0f, height.toFloat() - cropHeight).toInt()
         )
     }
 
     // Resize keeping same center
-    private fun resizeCropArea(newWidth: Int, newHeight: Int) {
+    private fun resizeCropArea(newW: Int, newH: Int) {
+        val maxWidth = maxWidth ?: return
+        val maxHeight = maxHeight ?: return
+        val newWidth = newW.coerceIn((maxWidth * minScale).toInt(), maxWidth)
+        val newHeight = newH.coerceIn((maxHeight * minScale).toInt(), maxHeight)
         val x = (mCropAreaRectangle.exactCenterX() - newWidth / 2).absoluteValue.coerceIn(
             0f,
             (width.toFloat() - newWidth).absoluteValue
@@ -224,7 +242,10 @@ class CropAreaView @JvmOverloads constructor(
 
     private fun scaleListener() = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
-            resizeCropArea((cropWidth * detector.scaleFactor).toInt(), (cropHeight * detector.scaleFactor).toInt())
+            resizeCropArea(
+                (cropWidth * detector.scaleFactor).toInt(),
+                (cropHeight * detector.scaleFactor).toInt()
+            )
             return true
         }
     }
