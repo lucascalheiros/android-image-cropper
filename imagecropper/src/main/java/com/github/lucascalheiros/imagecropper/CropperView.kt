@@ -68,103 +68,128 @@ class CropperView @JvmOverloads constructor(
     private val cropHeight: Int
         get() = mCropAreaRectangle.height()
 
-    private val initialYPositionShift: Float
-        get() = (height - (mScaledPhoto?.height ?: 0)) / 2f
-
-    private val initialXPositionShift: Float
-        get() = (width - (mScaledPhoto?.width ?: 0)) / 2f
-
     private val viewProportion: Float?
         get() = if (height > 0 && width > 0) width / height.toFloat() else null
 
-    var cropProportion = 1f
+    private var mIsFromSnapshot = false
+    var defaultPhotoWidth: Int? = null
+    var defaultPhotoHeight: Int? = null
+
+    private var mCropProportion = 1f
+    var cropProportion: Float
+        get() = mCropProportion
         set(value) {
-            if (field != value) {
-                field = value
-                initializeCropAreaPosition()
-                invalidate()
-            }
+            mCropProportion = value
+            initializeCropAreaPosition()
+            invalidate()
         }
 
-    var maxCropWidth: Float = Float.MAX_VALUE
+    private var mMaxCropWidth = Float.MAX_VALUE
+    var maxCropWidth: Float
+        get() = mMaxCropWidth
         set(value) {
-            if (field != value) {
-                field = value
-                initializeCropAreaPosition()
-                invalidate()
-            }
+            mMaxCropWidth = value
+            initializeCropAreaPosition()
+            invalidate()
         }
 
-    var maxCropHeight: Float = Float.MAX_VALUE
+    private var mMaxCropHeight = Float.MAX_VALUE
+    var maxCropHeight: Float
+        get() = mMaxCropHeight
         set(value) {
-            if (field != value) {
-                field = value
-                initializeCropAreaPosition()
-                invalidate()
-            }
+            mMaxCropHeight = value
+            initializeCropAreaPosition()
+            invalidate()
         }
 
-    var horizontalBorder: Float = 0f
+    private var mHorizontalCropBorder = 0f
+    var horizontalCropBorder: Float
+        get() = mHorizontalCropBorder
         set(value) {
-            if (field != value) {
-                field = value
-                initializeCropAreaPosition()
-                invalidate()
-            }
+            mHorizontalCropBorder = value
+            initializeCropAreaPosition()
+            invalidate()
         }
-
-    var verticalBorder: Float = 0f
+    private var mVerticalCropBorder = 0f
+    var verticalCropBorder: Float
+        get() = mVerticalCropBorder
         set(value) {
-            if (field != value) {
-                field = value
-                initializeCropAreaPosition()
-                invalidate()
-            }
+            mVerticalCropBorder = value
+            initializeCropAreaPosition()
+            invalidate()
         }
 
     var photoBitmap: Bitmap? = null
         set(value) {
             if (field != value) {
                 field = value
-                invalidatePhotoAndMeasurements()
+                invalidatePhoto()
             }
         }
 
     val croppingMatrix = Matrix()
 
-    private fun initializePhotoPosition() {
-        croppingMatrix.setTranslate(initialXPositionShift, initialYPositionShift)
-    }
 
     private fun initializeCropAreaPosition() {
-        val viewProportion = viewProportion ?: return
-
-        val posX = (width - cropWidth) / 2f
-        val posY = (height - cropHeight) / 2f
+        val (cropWidth, cropHeight) = defaultCropSize() ?: return
+        resizeCropArea(cropWidth, cropHeight)
+        val (posX, posY) = defaultCropPosition()
         updateCropAreaPosition(posX, posY)
-
-        val boundSize = if (viewProportion <= cropProportion) {
-            (width - horizontalBorder).let { it to (it / cropProportion) }
-        } else {
-            (height - verticalBorder).let { (it * cropProportion) to it }
-        }.toPoint()
-        val resizeFactor = min(boundSize.x, maxCropWidth) / boundSize.x * min(boundSize.y, maxCropHeight) / boundSize.y
-
-        val resizedBoundSize = boundSize * resizeFactor
-        resizeCropArea(resizedBoundSize.x.toInt(), resizedBoundSize.y.toInt())
     }
 
-    private fun invalidatePhotoAndMeasurements() {
-        try {
-            val bitmap = photoBitmap ?: return
-            val photoProportion = mPhotoProportion ?: return
-            val viewProportion = viewProportion ?: return
+    private fun defaultCropSize(): Pair<Int, Int>? {
+        val viewProportion = viewProportion ?: return null
 
-            val (scaledWidth, scaledHeight) = if (viewProportion <= photoProportion)
-                width to (width / photoProportion).toInt()
-            else
-                (height * photoProportion).toInt() to height
-            mScaledPhoto = bitmap.scale(scaledWidth, scaledHeight)
+        val widthLimited = min(width - horizontalCropBorder, maxCropWidth)
+        val heightLimited = min(height - verticalCropBorder, maxCropHeight)
+        val boundSize = if (viewProportion <= cropProportion) {
+            widthLimited to (widthLimited / cropProportion)
+        } else {
+            (heightLimited * cropProportion) to heightLimited
+        }.toPoint()
+        val resizeFactor = if (boundSize.x - widthLimited < 0) {
+            boundSize.x / widthLimited
+        } else if (boundSize.y - heightLimited < 0) {
+            boundSize.y / heightLimited
+        } else 1f
+
+        val resizedBoundSize = boundSize * resizeFactor
+
+        return resizedBoundSize.x.toInt() to resizedBoundSize.y.toInt()
+    }
+
+    private fun defaultCropPosition(): Pair<Float, Float> {
+        return (width - cropWidth) / 2f to (height - cropHeight) / 2f
+    }
+
+    private fun initializePhotoPosition() {
+        if (mIsFromSnapshot) return
+        val (initialX, initialY) = defaultPhotoPosition() ?: return
+        croppingMatrix.setTranslate(initialX, initialY)
+    }
+
+    private fun defaultPhotoSize(): Pair<Int, Int>? {
+        val photoProportion = mPhotoProportion ?: return null
+        val viewProportion = viewProportion ?: return null
+        val defaultPhotoHeight = defaultPhotoHeight
+        val defaultPhotoWidth = defaultPhotoWidth
+        return if (defaultPhotoHeight != null && defaultPhotoWidth != null)
+            defaultPhotoWidth to defaultPhotoHeight
+        else if (viewProportion <= photoProportion)
+            width to (width / photoProportion).toInt()
+        else
+            (height * photoProportion).toInt() to height
+    }
+
+    private fun defaultPhotoPosition(): Pair<Float, Float>? {
+        val scaledPhoto = mScaledPhoto ?: return null
+        return (width - scaledPhoto.width) / 2f to (height - scaledPhoto.height) / 2f
+    }
+
+    private fun invalidatePhoto() {
+        try {
+            val (scaledWidth, scaledHeight) = defaultPhotoSize() ?: return
+            mScaledPhoto = photoBitmap?.scale(scaledWidth, scaledHeight) ?: return
             initializePhotoPosition()
             invalidate()
         } catch (e: Exception) {
@@ -230,6 +255,43 @@ class CropperView @JvmOverloads constructor(
         }
     }
 
+    fun resetCropDefaults() {
+        mVerticalCropBorder = 0f
+        mHorizontalCropBorder = 0f
+        mMaxCropHeight = Float.MAX_VALUE
+        mMaxCropWidth = Float.MAX_VALUE
+        mCropProportion = 1f
+        defaultPhotoHeight = null
+        defaultPhotoWidth = null
+        croppingMatrix.set(Matrix())
+        mIsFromSnapshot = false
+        initializeCropAreaPosition()
+        invalidatePhoto()
+    }
+
+    fun applyCropSnapshot(snapshot: CropSnapshot) {
+        mMaxCropHeight = snapshot.cropHeight.toFloat()
+        mMaxCropWidth = snapshot.cropWidth.toFloat()
+        mCropProportion = snapshot.cropWidth.toFloat() / snapshot.cropHeight.toFloat()
+        defaultPhotoHeight = snapshot.photoHeight
+        defaultPhotoWidth = snapshot.photoWidth
+        croppingMatrix.set(snapshot.matrix)
+        mIsFromSnapshot = true
+        initializeCropAreaPosition()
+        invalidatePhoto()
+    }
+
+    fun takeCropSnapshot(): CropSnapshot {
+        val scaledPhoto = mScaledPhoto!!
+        return CropSnapshot(
+            cropWidth,
+            cropHeight,
+            scaledPhoto.width,
+            scaledPhoto.height,
+            Matrix(croppingMatrix)
+        )
+    }
+
     private fun updateCropAreaPosition(x: Float, y: Float) {
         mCropAreaRectangle.offsetTo(
             x.toInt(),
@@ -280,3 +342,12 @@ class CropperView @JvmOverloads constructor(
     }
 
 }
+
+
+data class CropSnapshot(
+    val cropWidth: Int,
+    val cropHeight: Int,
+    val photoWidth: Int,
+    val photoHeight: Int,
+    val matrix: Matrix
+)
