@@ -26,6 +26,8 @@ class AreaCropperView @JvmOverloads constructor(
 
     init {
         setCropMode(CropMode.MoveImage)
+        setProportion(16f/9f)
+        setHorizontalDefaultCropBorder(200f)
     }
 
     fun setCropMode(mode: CropMode) {
@@ -39,6 +41,18 @@ class AreaCropperView @JvmOverloads constructor(
                 binding.cropperView.allowTouch = false
             }
         }
+    }
+
+    fun setProportion(proportion: Float) {
+        binding.cropAreaView.cropProportion = proportion
+    }
+
+    fun setVerticalDefaultCropBorder(valuePx: Float) {
+        binding.cropAreaView.verticalCropBorder = valuePx
+    }
+
+    fun setHorizontalDefaultCropBorder(valuePx: Float) {
+        binding.cropAreaView.horizontalCropBorder = valuePx
     }
 
     fun setBitmap(bitmap: Bitmap) {
