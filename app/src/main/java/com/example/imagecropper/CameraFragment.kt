@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -20,7 +19,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.imagecropper.databinding.FragmentCameraBinding
-import com.github.lucascalheiros.imagecropper.utils.FileSaver
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -79,13 +78,11 @@ class CameraFragment : Fragment() {
         val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
             .format(System.currentTimeMillis())
 
-        val contentValues = FileSaver.jpegContentValues(name)
+        val file = File(requireContext().cacheDir, name)
 
         val outputOptions = ImageCapture.OutputFileOptions
             .Builder(
-                requireContext().contentResolver,
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                contentValues
+                file,
             )
             .build()
 

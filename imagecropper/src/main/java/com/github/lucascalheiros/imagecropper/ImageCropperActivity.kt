@@ -3,10 +3,11 @@ package com.github.lucascalheiros.imagecropper
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.WindowManager
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
-import androidx.fragment.app.replace
+
 
 class ImageCropperActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,6 +18,13 @@ class ImageCropperActivity : AppCompatActivity() {
         supportFragmentManager.commit {
             replace(R.id.flBaseCropper, CropperFragment.newInstance(photoUri))
         }
+
+        supportActionBar?.hide()
+
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        window.statusBarColor = getColor(R.color.black)
+
     }
 
     companion object {
