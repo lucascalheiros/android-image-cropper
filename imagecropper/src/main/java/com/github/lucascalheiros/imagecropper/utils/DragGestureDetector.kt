@@ -11,10 +11,9 @@ class DragGestureDetector(private val listener: OnDragGestureListener) {
         fun onDragged(walkX: Float, walkY: Float)
     }
 
-    // The ‘active pointer’ is the one currently moving our object.
     private var mActivePointerId = MotionEvent.INVALID_POINTER_ID
 
-    private var mLastTouch = (0f to 0f).toPoint()
+    private var mLastTouch: Point? = null
 
     private fun registerActivePointerInitialPosition(ev: MotionEvent) {
         mActivePointerId = ev.getPointerId(0)
@@ -23,6 +22,7 @@ class DragGestureDetector(private val listener: OnDragGestureListener) {
 
     private fun invalidateActivePointer() {
         mActivePointerId = MotionEvent.INVALID_POINTER_ID
+        mLastTouch = null
     }
 
     private fun activePointerPosition(ev: MotionEvent): Point? {
@@ -55,11 +55,12 @@ class DragGestureDetector(private val listener: OnDragGestureListener) {
                 }
 
                 val currentTouchPosition = activePointerPosition(ev) ?: return
-
-                (currentTouchPosition - mLastTouch).let { moveWalk ->
-                    listener.onDragged(moveWalk.x, moveWalk.y)
+                val lastTouch = mLastTouch
+                if (lastTouch != null) {
+                    (currentTouchPosition - lastTouch).let { moveWalk ->
+                        listener.onDragged(moveWalk.x, moveWalk.y)
+                    }
                 }
-
                 mLastTouch = currentTouchPosition
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
