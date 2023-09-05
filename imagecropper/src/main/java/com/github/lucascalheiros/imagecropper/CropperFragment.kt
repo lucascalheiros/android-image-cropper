@@ -9,30 +9,28 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.github.lucascalheiros.imagecropper.ImageCropperActivity.Companion.EXTRA_RESULT_CROPPED_IMAGE
 import com.github.lucascalheiros.imagecropper.databinding.FragmentCropperBinding
 import com.github.lucascalheiros.imagecropper.utils.BitmapManager
 import com.github.lucascalheiros.imagecropper.utils.BitmapManager.Companion.loadBitmap
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-
 
 class CropperFragment : Fragment() {
 
     private val photoUri: Uri?
         get() = arguments?.getParcelable(ARG_PHOTO_URI)
 
-    private lateinit var binding: FragmentCropperBinding
-
-    private val scope = MainScope()
+    private var mBinding: FragmentCropperBinding? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
 
-        binding = FragmentCropperBinding.inflate(layoutInflater, container, false)
+        val binding = FragmentCropperBinding.inflate(layoutInflater, container, false).also {
+            mBinding = it
+        }
 
         loadImage()
 
@@ -47,40 +45,32 @@ class CropperFragment : Fragment() {
         return binding.root
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        scope.cancel()
+    override fun onDestroyView() {
+        mBinding = null
+        super.onDestroyView()
     }
 
     private fun loadImage() {
-        scope.launch {
+        lifecycleScope.launch {
             try {
                 val bitmap = loadBitmap(photoUri!!)
-                binding.areaCropperView.setBitmap(bitmap)
+                mBinding!!.areaCropperView.setBitmap(bitmap)
             } catch (e: Exception) {
-                Log.d(
-                    TAG,
-                    "loadImage",
-                    e
-                )
+                Log.e(TAG, "::loadImage", e)
                 requireActivity().finish()
             }
         }
     }
 
     private fun saveCroppedImage() {
-        scope.launch {
+        lifecycleScope.launch {
             val uri = try {
-                val bitmap = binding.areaCropperView.cropAreaToBitmap()
+                val bitmap = mBinding!!.areaCropperView.cropAreaToBitmap()
                 val fileName: String = System.currentTimeMillis().toString()
                 val bitmapManager = BitmapManager(requireContext())
-               bitmapManager.saveBitmap(fileName, bitmap)
+                bitmapManager.saveBitmap(fileName, bitmap)
             } catch (e: Exception) {
-                Log.d(
-                    TAG,
-                    "onBtnSavePng",
-                    e
-                )
+                Log.e(TAG, "::onBtnSavePng", e)
                 null
             }
             val intent = Intent()
