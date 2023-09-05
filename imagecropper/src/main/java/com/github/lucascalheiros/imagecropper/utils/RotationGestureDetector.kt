@@ -3,12 +3,7 @@ package com.github.lucascalheiros.imagecropper.utils
 import android.view.MotionEvent
 import kotlin.math.atan2
 
-
 class RotationGestureDetector(private val listener: OnRotationGestureListener) {
-    companion object {
-        private const val TAG = "RotationGestureDetector"
-    }
-
     interface OnRotationGestureListener {
         fun onRotation(angle: Float, pivotPoint: Point)
     }
@@ -16,11 +11,15 @@ class RotationGestureDetector(private val listener: OnRotationGestureListener) {
     private var mPrimaryPointerId = MotionEvent.INVALID_POINTER_ID
     private var mSecondaryPointerId = MotionEvent.INVALID_POINTER_ID
 
-    private var mLastPrimaryPointerPosition = (0f to 0f).toPoint()
-    private var mLastSecondaryPointerPosition = (0f to 0f).toPoint()
+    private var mLastPrimaryPointerPosition: Point? = null
+    private var mLastSecondaryPointerPosition: Point? = null
 
-    private val middlePoint: Point
-        get() = (mLastPrimaryPointerPosition + mLastSecondaryPointerPosition) / 2f
+    private val middlePoint: Point?
+        get() {
+            val lastPrimaryPointerPosition = mLastPrimaryPointerPosition ?: return  null
+            val lastSecondaryPointerPosition = mLastSecondaryPointerPosition ?: return  null
+            return (lastPrimaryPointerPosition + lastSecondaryPointerPosition) / 2f
+        }
 
     private val pointersValid: Boolean
         get() = mPrimaryPointerId != MotionEvent.INVALID_POINTER_ID &&
@@ -61,19 +60,28 @@ class RotationGestureDetector(private val listener: OnRotationGestureListener) {
                 mSecondaryPointerId = event.getPointerId(event.actionIndex)
                 mLastSecondaryPointerPosition = event.getPoint(mSecondaryPointerId)
             }
-            MotionEvent.ACTION_MOVE -> if (pointersValid) {
-                val newPrimaryPoint = event.getPoint(mPrimaryPointerId)
-                val newSecondaryPoint = event.getPoint(mSecondaryPointerId)
-
-                val angle = angleBetweenLines(
-                    mLastPrimaryPointerPosition,
-                    mLastSecondaryPointerPosition,
-                    newPrimaryPoint,
-                    newSecondaryPoint
-                )
-                listener.onRotation(angle, middlePoint)
-                mLastPrimaryPointerPosition = newPrimaryPoint
-                mLastSecondaryPointerPosition = newSecondaryPoint
+            MotionEvent.ACTION_MOVE -> {
+                if (pointersValid) {
+                    val newPrimaryPoint = event.getPoint(mPrimaryPointerId)
+                    val newSecondaryPoint = event.getPoint(mSecondaryPointerId)
+                    val lastPrimaryPointerPosition = mLastPrimaryPointerPosition
+                    val lastSecondaryPointerPosition = mLastSecondaryPointerPosition
+                    if (lastPrimaryPointerPosition == null || lastSecondaryPointerPosition == null) {
+                        mLastPrimaryPointerPosition = newPrimaryPoint
+                        mLastSecondaryPointerPosition = newSecondaryPoint
+                    } else {
+                        val angle = angleBetweenLines(
+                            lastPrimaryPointerPosition,
+                            lastSecondaryPointerPosition,
+                            newPrimaryPoint,
+                            newSecondaryPoint
+                        )
+                        middlePoint?.let {
+                            listener.onRotation(angle, it)
+                        }
+                    }
+                }
+                registerLastPositionsAfterMove(event)
             }
             MotionEvent.ACTION_UP -> invalidatePrimaryPointer()
             MotionEvent.ACTION_POINTER_UP -> invalidateSecondaryPointer()
@@ -83,5 +91,17 @@ class RotationGestureDetector(private val listener: OnRotationGestureListener) {
             }
         }
     }
-}
 
+    private fun registerLastPositionsAfterMove(event: MotionEvent) {
+        mLastPrimaryPointerPosition = if (mPrimaryPointerId != MotionEvent.INVALID_POINTER_ID) {
+            try { event.getPoint(mPrimaryPointerId) } catch (ignore: Exception) { null }
+        } else {
+            null
+        }
+        mLastSecondaryPointerPosition = if (mSecondaryPointerId != MotionEvent.INVALID_POINTER_ID) {
+            try { event.getPoint(mSecondaryPointerId) } catch (ignore: Exception) { null }
+        } else {
+            null
+        }
+    }
+}
